@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:      #0a0c0f;
+  --surface: #0f1318;
+  --card:    #151a21;
+  --border:  #1e2530;
+  --border2: #28303d;
+  --text:    #e4ecf4;
+  --muted:   #6b7888;
+  --dim:     #3d4a58;
+  --cyan:    #38d1f0;
+  --green:   #3db955;
+  --red:     #f05050;
+  --amber:   #d4961e;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar              { width: 4px; height: 4px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: var(--border2); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover  { background: #3a4556; }
+
+/* sql highlight tokens */
+.kw  { color: var(--cyan); font-weight: 500; }
+.str { color: var(--green); }
+.num { color: var(--amber); }
+.cm  { color: var(--dim); }
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.fadein { animation: fadein 0.22s ease; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
