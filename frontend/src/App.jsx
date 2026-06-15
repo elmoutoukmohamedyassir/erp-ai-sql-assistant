@@ -1,18 +1,22 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
-import { MessageSquare, Table2, Activity, RefreshCw } from 'lucide-react'
+import { MessageSquare, Table2, Activity, RefreshCw, LogOut, ShieldCheck, User } from 'lucide-react'
 import { useHealth } from './hooks/useHealth'
+import { useAuth }   from './context/AuthContext'
 import { AskPage }     from './pages/Askpage'
 import { TablesPage }  from './pages/TablesPage'
 import { HealthPage }  from './pages/HealthPage'
 import { RebuildPage } from './pages/RebuildPage'
+import { LoginPage }   from './pages/LoginPage'
+import { RegisterPage } from './pages/RegisterPage'
 
-const TABS = [
-  { id: 'ask',     label: 'Ask',     icon: MessageSquare },
-  { id: 'tables',  label: 'Tables',  icon: Table2 },
-  { id: 'health',  label: 'Health',  icon: Activity },
-  { id: 'rebuild', label: 'Rebuild', icon: RefreshCw },
+// All tabs — visibility controlled by role
+const ALL_TABS = [
+  { id: 'ask',     label: 'Ask',     icon: MessageSquare, adminOnly: false },
+  { id: 'tables',  label: 'Tables',  icon: Table2,        adminOnly: true  },
+  { id: 'health',  label: 'Health',  icon: Activity,      adminOnly: true  },
+  { id: 'rebuild', label: 'Rebuild', icon: RefreshCw,     adminOnly: true  },
 ]
 
 const PAGES = {
@@ -23,21 +27,27 @@ const PAGES = {
 }
 
 export default function App() {
-  const [active, setActive] = useState('ask')
+  const { isAuth, isAdmin, user, logout } = useAuth()
+  const [authView, setAuthView] = useState('login')   // 'login' | 'register'
+  const [active,   setActive]   = useState('ask')
   const { status } = useHealth()
 
-  const Page = PAGES[active]
+  // ── not authenticated — show login / register ────────────────────────────
+  if (!isAuth) {
+    return authView === 'login'
+      ? <LoginPage    onSwitch={() => setAuthView('register')} />
+      : <RegisterPage onSwitch={() => setAuthView('login')} />
+  }
 
-  const dotColor = {
-    ok:       '#3db955',
-    err:      '#f05050',
-    checking: '#3d4a58',
-  }[status]
+  // tabs visible to current user
+  const visibleTabs = ALL_TABS.filter(t => !t.adminOnly || isAdmin)
 
-  const dotGlow = {
-    ok:  '0 0 6px rgba(61,185,85,.65)',
-    err: '0 0 6px rgba(240,80,80,.65)',
-  }[status] || 'none'
+  // if active tab was admin-only and user just logged in as non-admin, reset
+  const safeActive = visibleTabs.find(t => t.id === active) ? active : 'ask'
+  const Page = PAGES[safeActive]
+
+  const dotColor = { ok: '#3db955', err: '#f05050', checking: '#3d4a58' }[status]
+  const dotGlow  = { ok: '0 0 6px rgba(61,185,85,.65)', err: '0 0 6px rgba(240,80,80,.65)' }[status] || 'none'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
@@ -62,31 +72,71 @@ export default function App() {
           <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
             ERP <span style={{ color: 'var(--cyan)' }}>AI</span> Assistant
           </span>
-          <span style={{ fontSize: 11, color: 'var(--dim)', marginLeft: 2, display: 'none' }}>· Sage 100</span>
         </div>
 
-        {/* health dot */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        {/* right side: health dot + user chip + logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* health */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, boxShadow: dotGlow, transition: 'all .4s' }} />
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+              {status === 'ok' ? 'Connected' : status === 'err' ? 'Offline' : 'Checking…'}
+            </span>
+          </div>
+
+          {/* user chip */}
           <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: dotColor, boxShadow: dotGlow,
-            transition: 'all .4s',
-          }} />
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-            {status === 'ok' ? 'Connected' : status === 'err' ? 'Offline' : 'Checking…'}
-          </span>
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '3px 10px', background: 'var(--card)',
+            border: `1px solid ${isAdmin ? 'rgba(56,209,240,.25)' : 'var(--border)'}`,
+            borderRadius: 99, fontSize: 12,
+          }}>
+            {isAdmin
+              ? <ShieldCheck size={12} color="var(--cyan)" />
+              : <User        size={12} color="var(--muted)" />
+            }
+            <span style={{ color: isAdmin ? 'var(--cyan)' : 'var(--muted)', fontWeight: 500 }}>
+              {user?.username}
+            </span>
+            <span style={{
+              fontSize: 10, color: isAdmin ? 'var(--cyan)' : 'var(--dim)',
+              background: isAdmin ? 'rgba(56,209,240,.08)' : 'rgba(107,120,136,.08)',
+              border: `1px solid ${isAdmin ? 'rgba(56,209,240,.2)' : 'var(--border2)'}`,
+              borderRadius: 99, padding: '1px 6px', marginLeft: 2, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '.05em',
+            }}>
+              {user?.role}
+            </span>
+          </div>
+
+          {/* logout */}
+          <button
+            onClick={logout}
+            title="Sign out"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', background: 'transparent',
+              border: '1px solid var(--border)', borderRadius: 6,
+              color: 'var(--dim)', fontSize: 12, cursor: 'pointer',
+              fontFamily: 'Outfit, sans-serif', transition: 'all .15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'rgba(240,80,80,.35)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--dim)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+          >
+            <LogOut size={12} /> Sign out
+          </button>
         </div>
       </div>
 
-      {/* ── tabs ── */}
+      {/* ── tabs (only show tabs the role can access) ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 2, padding: '0 20px',
         height: 42, flexShrink: 0,
         borderBottom: '1px solid var(--border)', background: 'var(--surface)',
         position: 'relative',
       }}>
-        {TABS.map(({ id, label, icon: Icon }) => {
-          const isActive = active === id
+        {visibleTabs.map(({ id, label, icon: Icon }) => {
+          const isAct = safeActive === id
           return (
             <button
               key={id}
@@ -94,23 +144,20 @@ export default function App() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '5px 13px', borderRadius: 7, border: 'none',
-                background: isActive ? 'var(--card)' : 'transparent',
-                color: isActive ? 'var(--text)' : 'var(--muted)',
+                background: isAct ? 'var(--card)' : 'transparent',
+                color: isAct ? 'var(--text)' : 'var(--muted)',
                 fontSize: 13, cursor: 'pointer', fontFamily: 'Outfit, sans-serif',
                 transition: 'all .15s', position: 'relative',
               }}
-              onMouseEnter={e => !isActive && (e.currentTarget.style.color = 'var(--text)')}
-              onMouseLeave={e => !isActive && (e.currentTarget.style.color = 'var(--muted)')}
+              onMouseEnter={e => !isAct && (e.currentTarget.style.color = 'var(--text)')}
+              onMouseLeave={e => !isAct && (e.currentTarget.style.color = 'var(--muted)')}
             >
               <Icon size={13} />
               {label}
-              {isActive && (
+              {isAct && (
                 <motion.div
                   layoutId="tab-indicator"
-                  style={{
-                    position: 'absolute', bottom: -10, left: 0, right: 0, height: 2,
-                    background: 'var(--cyan)', borderRadius: 99,
-                  }}
+                  style={{ position: 'absolute', bottom: -10, left: 0, right: 0, height: 2, background: 'var(--cyan)', borderRadius: 99 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                 />
               )}
@@ -123,7 +170,7 @@ export default function App() {
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <AnimatePresence mode="wait">
           <motion.div
-            key={active}
+            key={safeActive}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
