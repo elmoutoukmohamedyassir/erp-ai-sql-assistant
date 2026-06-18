@@ -1,3 +1,18 @@
+"""
+core/db.py — database layer.
+
+Key design decisions
+--------------------
+* Singleton engine — created once, reused across the process lifetime.
+* Two schema helpers exposed to other modules:
+    - get_all_table_names()  → set[str]   used by the VALIDATOR
+    - get_table_columns()    → dict       used by the VALIDATOR
+  These are the ground-truth references. The FAISS index is only used
+  to pick which tables go into the LLM prompt — it is NEVER used for
+  validation.
+* load_full_schema() is used by the schema indexer at build time.
+* run_query() executes only pre-validated SELECT statements.
+"""
 from __future__ import annotations
 
 import os
@@ -81,10 +96,34 @@ def get_table_columns(table_name: str) -> frozenset[str]:
         return frozenset()
 
 
+@lru_cache(maxsize=512)
+def get_table_columns_real_case(table_name: str) -> dict[str, str]:
+    """
+    Like get_table_columns(), but returns a mapping of
+    UPPERCASE_NAME -> RealCaseName instead of a flat uppercase set.
+
+    The write SQL builder needs the real column casing to build valid
+    INSERT/UPDATE statements (SQL Server is usually case-insensitive for
+    identifiers, but preserving real casing avoids surprises on
+    case-sensitive collations and keeps generated SQL readable in logs).
+
+    Added for the write pipeline — get_table_columns() above remains
+    untouched and is still what the READ validator uses.
+    """
+    engine    = get_engine()
+    inspector = inspect(engine)
+    try:
+        cols = inspector.get_columns(table_name)
+        return {c["name"].upper(): c["name"] for c in cols}
+    except Exception:
+        return {}
+
+
 def clear_schema_cache() -> None:
     """Call this after rebuild_index to reset the LRU caches."""
     get_all_table_names.cache_clear()
     get_table_columns.cache_clear()
+    get_table_columns_real_case.cache_clear()
     logger.info("Schema cache cleared")
 
 
@@ -134,8 +173,45 @@ def load_full_schema() -> dict[str, dict]:
 
 
 
+def run_write(sql: str, params: dict[str, Any], timeout_seconds: int = 30) -> dict[str, Any]:
+    """
+    Execute a parameterized INSERT/UPDATE statement built by
+    sql/write_sql_builder.py.
+
+    Deliberately separate from run_query():
+    * run_query()  → read-only, executes raw validated SELECT text.
+    * run_write()  → write-only, ALWAYS takes a separate `params` dict for
+                     bound parameters (never string-concatenated values),
+                     and runs inside an explicit transaction so a failed
+                     write never partially commits.
+
+    `sql` must already be a parameterized statement (e.g. built with
+    SQLAlchemy `text()` and named bind parameters like :p_0, :p_1, ...).
+    `params` must contain exactly the bind values referenced by `sql`.
+    """
+    engine = get_engine()
+    t0 = time.perf_counter()
+
+    try:
+        with engine.begin() as conn:  # engine.begin() = transaction, auto-commit/rollback
+            result = conn.execute(
+                text(sql).execution_options(timeout=timeout_seconds),
+                params,
+            )
+            row_count = result.rowcount
+
+        ms = int((time.perf_counter() - t0) * 1000)
+        logger.info("Write OK — %d row(s) affected in %dms", row_count, ms)
+        return {"rows_affected": row_count, "duration_ms": ms}
+
+    except SQLAlchemyError as exc:
+        ms = int((time.perf_counter() - t0) * 1000)
+        logger.error("Write failed (%dms): %s", ms, exc)
+        raise RuntimeError(str(exc)) from exc
+
+
 def run_query(sql: str, timeout_seconds: int = 30) -> dict[str, Any]:
-    
+
     engine = get_engine()
     t0 = time.perf_counter()
 
