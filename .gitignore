@@ -9,5 +9,5 @@ build/
 
 logs/
 *.log
-seedadmin
+seed
 .cache/

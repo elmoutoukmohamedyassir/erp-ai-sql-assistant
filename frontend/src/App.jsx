@@ -30,7 +30,8 @@ export default function App() {
   const { isAuth, isAdmin, user, logout } = useAuth()
   const [authView, setAuthView] = useState('login')   // 'login' | 'register'
   const [active,   setActive]   = useState('ask')
-  const { status } = useHealth()
+  // only poll /health when authenticated as admin (it requires admin JWT)
+  const { status } = useHealth(isAuth && isAdmin)
 
   // ── not authenticated — show login / register ────────────────────────────
   if (!isAuth) {
