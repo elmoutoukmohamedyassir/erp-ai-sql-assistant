@@ -15,5 +15,10 @@ faiss-cpu>=1.8.0             # use faiss-gpu if you have CUDA
 # Env / config
 python-dotenv>=1.0.0
 
+# API layer (already required by api/app.py; pinned here for clarity)
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.6.0              # write_models.py uses Pydantic v2 (TypeAdapter, discriminated unions)
+
 # Utilities
 numpy>=1.26.0
