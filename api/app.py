@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from erp.erp_write_agent import ERPWriteAgent
 from typing import Any
 
 try:
@@ -49,6 +49,12 @@ def get_agent() -> ERPAgent:
         _agent = ERPAgent()
     return _agent
 
+_erp_write_agent: ERPWriteAgent | None = None
+def get_erp_write_agent() -> ERPWriteAgent:
+    global _erp_write_agent
+    if _erp_write_agent is None:
+        _erp_write_agent = ERPWriteAgent()
+    return _erp_write_agent
 
 def get_write_agent() -> WriteAgent:
     global _write_agent
@@ -99,7 +105,33 @@ class WritePreviewResponse(BaseModel):
 class WriteExecuteRequest(BaseModel):
     action: dict[str, Any]
 
+class ERPWritePreviewRequest(BaseModel):
+    conversation_id: str   # client-generated id — keep sending the SAME id across follow-up turns
+    question:        str
 
+
+class ERPWritePreviewResponse(BaseModel):
+    conversation_id:            str
+    question:                   str
+    requires_more_information:  bool
+    requires_confirmation:      bool
+    entity:                     str | None
+    table:                      str | None
+    operation:                  str | None
+    collected_fields:           dict[str, Any]
+    missing_fields:             list[str]
+    action:                     dict[str, Any] | None
+    valid:                      bool
+    errors:                     list[str]
+    warnings:                   list[str]
+    business_explanation:       str | None
+    error:                      str | None
+    attempts:                   int
+
+
+class ERPWriteExecuteRequest(BaseModel):
+    conversation_id: str
+    action:          dict[str, Any]
 class WriteExecuteResponse(BaseModel):
     action:         dict[str, Any]
     executed:       bool
@@ -190,6 +222,61 @@ def write_execute(req: WriteExecuteRequest, _: TokenData = Depends(require_admin
 
     write_agent = get_write_agent()
     result = write_agent.execute(req.action)
+
+    return WriteExecuteResponse(
+        action        = result.action,
+        executed      = result.executed,
+        rows_affected = result.rows_affected,
+        duration_ms   = result.duration_ms,
+        error         = result.error,
+    )
+
+
+# ── ERP entity-aware write endpoints ─────────────────────────────────────────
+# These sit ALONGSIDE /write/preview and /write/execute above (which keep
+# working unchanged for direct table/column requests). Use these two instead
+# when you want required-field detection + multi-turn slot-filling — e.g. the
+# frontend's "missing information" forms talk to these.
+
+@app.post("/erp/write/preview", response_model=ERPWritePreviewResponse)
+def erp_write_preview(req: ERPWritePreviewRequest, _: TokenData = Depends(require_any)):
+    if not req.question.strip():
+        raise HTTPException(status_code=400, detail="question cannot be empty")
+    if not req.conversation_id.strip():
+        raise HTTPException(status_code=400, detail="conversation_id cannot be empty")
+
+    agent = get_erp_write_agent()
+    result = agent.preview(req.conversation_id, req.question)
+
+    return ERPWritePreviewResponse(
+        conversation_id            = result.conversation_id,
+        question                   = result.question,
+        requires_more_information  = result.requires_more_information,
+        requires_confirmation      = result.requires_confirmation,
+        entity                     = result.entity,
+        table                      = result.table,
+        operation                  = result.operation,
+        collected_fields           = result.collected_fields,
+        missing_fields             = result.missing_fields,
+        action                     = result.action,
+        valid                      = result.valid,
+        errors                     = result.errors,
+        warnings                   = result.warnings,
+        business_explanation       = result.business_explanation,
+        error                      = result.error,
+        attempts                   = result.attempts,
+    )
+
+
+@app.post("/erp/write/execute", response_model=WriteExecuteResponse)
+def erp_write_execute(req: ERPWriteExecuteRequest, _: TokenData = Depends(require_admin)):
+    if not req.action:
+        raise HTTPException(status_code=400, detail="action cannot be empty")
+    if not req.conversation_id.strip():
+        raise HTTPException(status_code=400, detail="conversation_id cannot be empty")
+
+    agent = get_erp_write_agent()
+    result = agent.execute(req.conversation_id, req.action)
 
     return WriteExecuteResponse(
         action        = result.action,
