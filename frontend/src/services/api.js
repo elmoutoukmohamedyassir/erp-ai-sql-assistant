@@ -48,6 +48,16 @@ export const getMe = () => http.get('/auth/me')
 
 // ── app ───────────────────────────────────────────────────────────────────
 export const getHealth   = ()            => http.get('/health')
-export const getTables   = ()            => http.get('/tables')
+export const getTables   = ()            => http.get('/schema-tables')
 export const postRebuild = ()            => http.post('/rebuild')
 export const postAsk     = (q, top_k=8) => http.post('/ask', { question: q, top_k })
+
+// ── Data-Entry: table metadata ─────────────────────────────────────────────
+export const getAllTables       = ()           => http.get('/tables')
+export const getTableMetadata   = (tableName)  => http.get(`/tables/${encodeURIComponent(tableName)}/metadata`)
+
+// ── Data-Entry: record create / update / execute ──────────────────────────
+export const previewCreate  = (table, values)        => http.post('/records/create',  { table, values })
+export const previewUpdate  = (table, where, values) => http.post('/records/update',  { table, where, values })
+export const executeRecord  = (operation, table, values, where = null) =>
+  http.post('/records/execute', { operation, table, values, ...(where ? { where } : {}) })

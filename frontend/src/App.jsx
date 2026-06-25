@@ -1,29 +1,32 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
-import { MessageSquare, Table2, Activity, RefreshCw, LogOut, ShieldCheck, User } from 'lucide-react'
+import { MessageSquare, Table2, Activity, RefreshCw, LogOut, ShieldCheck, User, Edit3 } from 'lucide-react'
 import { useHealth } from './hooks/useHealth'
 import { useAuth }   from './context/AuthContext'
-import { AskPage }     from './pages/Askpage'
-import { TablesPage }  from './pages/TablesPage'
-import { HealthPage }  from './pages/HealthPage'
-import { RebuildPage } from './pages/RebuildPage'
-import { LoginPage }   from './pages/LoginPage'
-import { RegisterPage } from './pages/RegisterPage'
+import { AskPage }       from './pages/Askpage'
+import { TablesPage }    from './pages/TablesPage'
+import { HealthPage }    from './pages/HealthPage'
+import { RebuildPage }   from './pages/RebuildPage'
+import { LoginPage }     from './pages/LoginPage'
+import { RegisterPage }  from './pages/RegisterPage'
+import { DataEntryPage } from './pages/DataEntryPage'
 
 // All tabs — visibility controlled by role
 const ALL_TABS = [
-  { id: 'ask',     label: 'Ask',     icon: MessageSquare, adminOnly: false },
-  { id: 'tables',  label: 'Tables',  icon: Table2,        adminOnly: true  },
-  { id: 'health',  label: 'Health',  icon: Activity,      adminOnly: true  },
-  { id: 'rebuild', label: 'Rebuild', icon: RefreshCw,     adminOnly: true  },
+  { id: 'ask',       label: 'Ask',        icon: MessageSquare, adminOnly: false },
+  { id: 'dataentry', label: 'Data Entry', icon: Edit3,         adminOnly: true  },
+  { id: 'tables',    label: 'Tables',     icon: Table2,        adminOnly: true  },
+  { id: 'health',    label: 'Health',     icon: Activity,      adminOnly: true  },
+  { id: 'rebuild',   label: 'Rebuild',    icon: RefreshCw,     adminOnly: true  },
 ]
 
 const PAGES = {
-  ask:     AskPage,
-  tables:  TablesPage,
-  health:  HealthPage,
-  rebuild: RebuildPage,
+  ask:       AskPage,
+  dataentry: DataEntryPage,
+  tables:    TablesPage,
+  health:    HealthPage,
+  rebuild:   RebuildPage,
 }
 
 export default function App() {

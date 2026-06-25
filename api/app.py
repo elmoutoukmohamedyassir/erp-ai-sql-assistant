@@ -12,6 +12,8 @@ except ImportError:
 from auth.auth import TokenData, require_admin, require_any
 from auth.models import create_tables
 from auth.router import router as auth_router
+from api.metadata_router import router as metadata_router
+from api.records_router import router as records_router
 from core.agent import ERPAgent
 from core.write_agent import WriteAgent
 from intent.classifier import Intent, detect_intent
@@ -38,6 +40,10 @@ app.add_middleware(
 
 # mount auth routes (/auth/register, /auth/login, /auth/me)
 app.include_router(auth_router)
+# mount metadata routes (/tables, /tables/{name}/metadata)
+app.include_router(metadata_router)
+# mount record write routes (/records/create, /records/update, /records/execute)
+app.include_router(records_router)
 
 _agent: ERPAgent | None = None
 _write_agent: WriteAgent | None = None
@@ -147,8 +153,9 @@ def health(_: TokenData = Depends(require_admin)):
     return {"status": "ok"}
 
 
-@app.get("/tables")
-def list_tables(_: TokenData = Depends(require_admin)):
+@app.get("/schema-tables")
+def list_indexed_tables(_: TokenData = Depends(require_admin)):
+    """Legacy endpoint: tables indexed in the FAISS schema index (for /rebuild workflow)."""
     tables = get_agent().list_indexed_tables()
     return {"count": len(tables), "tables": tables}
 
