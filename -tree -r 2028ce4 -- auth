@@ -1,0 +1,11 @@
+[33mcommit 2028ce4102eace6b31c08fc5c2c95aef9065a978[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/write-actions[m[33m, [m[1;31morigin/feature/write-actions[m[33m)[m
+Author: elmoutoukmohamedyassir <elmoutoukmohamedyassir@gmail.com>
+Date:   Thu Jun 25 12:45:15 2026 +0100
+
+    feat: implement ERP data entry system
+
+[33mcommit 0ea5db8edff2de3c26dd58303b2dfdf614a6f89b[m
+Author: elmoutoukmohamedyassir <elmoutoukmohamedyassir@gmail.com>
+Date:   Mon Jun 15 13:00:17 2026 +0100
+
+     -new branche setup
