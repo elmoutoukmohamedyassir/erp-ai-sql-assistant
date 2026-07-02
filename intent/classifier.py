@@ -1,23 +1,3 @@
-"""
-intent/classifier.py — READ vs WRITE intent detection.
-
-Design decisions
------------------
-* Cheap, deterministic, regex/keyword based classifier — runs BEFORE any
-  LLM call. This keeps the existing READ pipeline completely untouched:
-  if intent == READ, the agent behaves exactly as it did before this
-  feature existed.
-* No network/LLM call is needed to classify intent. Write actions are rare
-  and short, so a keyword-based classifier is fast, free, and predictable
-  (LLM-based intent classification would add latency + cost + a new
-  failure mode for something that is almost always obvious from verbs
-  like "add", "create", "update", "increase").
-* Conservative by design: if nothing matches a WRITE pattern, we default
-  to READ. This is the safer default — worst case a write request gets
-  treated as a read and returns no rows / an "unsupported question"
-  error, instead of a read request being misrouted into the write
-  pipeline.
-"""
 from __future__ import annotations
 
 import re

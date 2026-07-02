@@ -1,10 +1,3 @@
-"""
-api/app.py — ERP AI SQL Assistant API with JWT role-based authorization.
-
-Roles:
-  admin → /health, /tables, /tables/{table}/metadata, /rebuild, /ask  (full access)
-  user  → /ask only
-"""
 from __future__ import annotations
 
 from typing import Any

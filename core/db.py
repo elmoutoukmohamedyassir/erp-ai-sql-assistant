@@ -1,18 +1,3 @@
-"""
-core/db.py — database layer.
-
-Key design decisions
---------------------
-* Singleton engine — created once, reused across the process lifetime.
-* Two schema helpers exposed to other modules:
-    - get_all_table_names()  → set[str]   used by the VALIDATOR
-    - get_table_columns()    → dict       used by the VALIDATOR
-  These are the ground-truth references. The FAISS index is only used
-  to pick which tables go into the LLM prompt — it is NEVER used for
-  validation.
-* load_full_schema() is used by the schema indexer at build time.
-* run_query() executes only pre-validated SELECT statements.
-"""
 from __future__ import annotations
 
 import os

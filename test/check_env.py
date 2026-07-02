@@ -1,7 +1,3 @@
-"""
-Run this file from the same folder as your project to debug .env loading.
-    python check_env.py
-"""
 import os
 from pathlib import Path
 from dotenv import load_dotenv, dotenv_values
