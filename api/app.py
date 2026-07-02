@@ -2,7 +2,7 @@
 api/app.py — ERP AI SQL Assistant API with JWT role-based authorization.
 
 Roles:
-  admin → /health, /tables, /rebuild, /ask  (full access)
+  admin → /health, /tables, /tables/{table}/metadata, /rebuild, /ask  (full access)
   user  → /ask only
 """
 from __future__ import annotations
@@ -20,6 +20,7 @@ from auth.auth import TokenData, require_admin, require_any
 from auth.models import create_tables
 from auth.router import router as auth_router
 from core.agent import ERPAgent
+from erp.schema_inspector import get_table_metadata
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -87,6 +88,44 @@ def list_tables(_: TokenData = Depends(require_admin)):
     """Admin only — list indexed tables."""
     tables = get_agent().list_indexed_tables()
     return {"count": len(tables), "tables": tables}
+
+
+@app.get("/tables/{table_name}/metadata")
+def table_metadata(table_name: str, _: TokenData = Depends(require_admin)):
+    """
+    Admin only — column metadata for the Data-Entry form builder.
+
+    Response shape matches what DataEntryPage.jsx / DynamicForm expects:
+      { table, columns[], required_columns[], identity_columns[], primary_keys[] }
+    required_columns / identity_columns / primary_keys are lists of column
+    NAMES (DynamicForm .toUpperCase()s them itself) — not per-column flags.
+    """
+    columns = get_table_metadata(table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Table '{table_name}' not found or has no columns",
+        )
+    return {
+        "table": table_name,
+        "columns": [
+            {
+                "name":           c.name,
+                "data_type":      c.data_type,
+                "max_length":     c.max_length,
+                "nullable":       c.nullable,
+                "required":       c.is_required_for_insert,
+                "is_identity":    c.is_identity,
+                "is_computed":    c.is_computed,
+                "is_primary_key": c.is_primary_key,
+                "default":        c.default,
+            }
+            for c in columns
+        ],
+        "required_columns": [c.name for c in columns if c.is_required_for_insert],
+        "identity_columns":  [c.name for c in columns if c.is_identity],
+        "primary_keys":      [c.name for c in columns if c.is_primary_key],
+    }
 
 
 @app.post("/rebuild")

@@ -6,6 +6,10 @@ Design decisions
 * Uses INFORMATION_SCHEMA.COLUMNS (portable, matches the spec) for
   type/nullable/default, plus COLUMNPROPERTY(...) for identity/computed
   flags — INFORMATION_SCHEMA doesn't expose those two.
+* Primary key membership is read separately via SQLAlchemy's inspector
+  (get_pk_constraint), the same mechanism core/db.py already uses in
+  load_full_schema() — kept consistent rather than hand-rolling another
+  KEY_COLUMN_USAGE query.
 * A column is "required for INSERT" only if it disallows NULL, has no
   default value, and is not identity/computed — i.e. SQL Server will not
   fill it in for you, so the caller MUST supply it.
@@ -21,7 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from core.db import get_engine
 from utils.logger import get_logger
@@ -38,6 +42,7 @@ class ColumnMetadata:
     default: str | None
     is_identity: bool
     is_computed: bool
+    is_primary_key: bool
 
     @property
     def is_required_for_insert(self) -> bool:
@@ -52,6 +57,18 @@ class ColumnMetadata:
         if self.default is not None:
             return False
         return True
+
+
+@lru_cache(maxsize=256)
+def get_primary_key_columns(table_name: str) -> frozenset[str]:
+    """Return the UPPERCASE primary-key column names for `table_name`."""
+    engine = get_engine()
+    try:
+        pk_info = inspect(engine).get_pk_constraint(table_name)
+        return frozenset(c.upper() for c in (pk_info.get("constrained_columns") or []))
+    except Exception as exc:
+        logger.warning("Could not read primary key for '%s': %s", table_name, exc)
+        return frozenset()
 
 
 @lru_cache(maxsize=256)
@@ -89,6 +106,9 @@ def get_table_metadata(table_name: str) -> tuple[ColumnMetadata, ...]:
 
     if not rows:
         logger.warning("No metadata found for table '%s' — does it exist?", table_name)
+        return tuple()
+
+    pk_columns = get_primary_key_columns(table_name)
 
     return tuple(
         ColumnMetadata(
@@ -99,6 +119,7 @@ def get_table_metadata(table_name: str) -> tuple[ColumnMetadata, ...]:
             default=row["column_default"],
             is_identity=bool(row["is_identity"]),
             is_computed=bool(row["is_computed"]),
+            is_primary_key=row["column_name"].upper() in pk_columns,
         )
         for row in rows
     )
@@ -117,4 +138,5 @@ def get_required_columns(table_name: str) -> frozenset[str]:
 def clear_metadata_cache() -> None:
     """Call after a schema change (e.g. :rebuild) to drop cached metadata."""
     get_table_metadata.cache_clear()
+    get_primary_key_columns.cache_clear()
     logger.info("ERP schema metadata cache cleared")
