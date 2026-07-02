@@ -1,258 +1,534 @@
-# ERP AI SQL Assistant
+# 🚀 ERP AI SQL Assistant
 
-AI-powered Text-to-SQL assistant and metadata-driven data entry tool for Sage 100 / SQL Server databases.
-
-Ask questions in natural language like:
-
-- "Show all customers"
-- "Top invoices this month"
-- "List payment methods"
-- "Show products with low stock"
-
-Or use the **Data Entry** UI to create and update records directly — with schema-driven forms, validation, SQL preview, and confirmation before any write touches the database.
-
-The system retrieves relevant schema context using semantic search (FAISS + embeddings), generates SQL with an LLM, validates it against the REAL database schema, then executes it safely.
+> **An AI-powered ERP platform built on top of Sage 100 SQL Server, combining natural language querying, secure data management, and a modern business interface.**
 
 ---
 
-# Features
+## 📖 Overview
 
-## AI Text-to-SQL
-Convert natural language into SQL Server T-SQL queries.
+ERP AI SQL Assistant is a full-stack web application that modernizes the interaction with a Sage 100 ERP database.
 
-## RAG-based Schema Retrieval
-Uses semantic embeddings to retrieve only the most relevant tables and columns for the prompt.
+The platform provides two complementary experiences:
 
-## Real Database Validation
-Generated SQL is validated against the live SQL Server schema before execution.
+* **Administrators** can safely explore and manage ERP data using AI-powered querying and a secure data entry module.
+* **Business users** interact with a simplified CRM interface without ever seeing database tables or SQL.
 
-## Self-Correction Loop
-If SQL execution fails, the AI automatically retries with the database error message.
-
-## Metadata-Driven Data Entry
-Create and update records through a dynamic form UI — no raw SQL, no guesswork:
-- Table selector backed by the live database schema
-- Forms auto-generated from `INFORMATION_SCHEMA` column metadata
-- Required fields highlighted, identity/computed columns locked read-only
-- Full validation before any write: table exists, columns exist, required fields provided, types checked
-- SQL preview with confirmation modal before execution
-- Parameterized queries only — no string concatenation, no SQL injection surface
-- Session history log of all executed operations
-
-## FastAPI REST API
-Expose the assistant over HTTP for dashboards and frontend apps.
-
-## JWT Authentication & Role-Based Access
-- `/ask` and read endpoints: any authenticated user
-- Data Entry preview: any authenticated user
-- Data Entry execute + admin routes: admin role only
-
-## SQL Injection & Dangerous Query Protection
-Blocks on the read pipeline:
-- DROP, DELETE, UPDATE, INSERT, EXEC, XP_*, OPENROWSET, and more
-
-Write pipeline uses structured actions (never raw LLM SQL) + parameterized execution.
+The project combines deterministic backend logic with AI capabilities while keeping database operations secure and fully validated.
 
 ---
 
-# Architecture
+# ✨ Features
 
-## Read Pipeline (Ask)
+## 🤖 AI SQL Assistant
+
+Ask questions in natural language instead of writing SQL.
+
+Example:
+
+> Show me the top 10 customers by revenue.
+
+The assistant automatically:
+
+* Understands the question
+* Retrieves relevant database schema
+* Generates SQL using an LLM
+* Validates generated SQL
+* Executes safe SELECT queries
+* Displays results in a modern table
+
+### AI Pipeline
 
 ```text
-User Question
-      ↓
-Schema Retrieval (FAISS + Embeddings)
-      ↓
-Prompt Builder
-      ↓
-LLM → SQL Generation
-      ↓
-SQL Validator
-      ↓
-SQL Server Execution
-      ↓
-Results Returned
+Natural Language
+        │
+        ▼
+Schema Retrieval
+        │
+        ▼
+LLM SQL Generation
+        │
+        ▼
+SQL Validation
+        │
+        ▼
+SQL Execution
+        │
+        ▼
+Results
 ```
 
-## Write Pipeline (Data Entry)
+---
+
+## 📝 Admin Data Entry
+
+A secure administration module allowing administrators to insert or update Sage ERP records without manually writing SQL.
+
+Features:
+
+* Dynamic table discovery
+* Automatic schema inspection
+* Dynamic forms
+* Required field validation
+* SQL preview
+* Parameterized SQL generation
+* Transaction execution
+* SQL injection protection
+
+Unlike the AI assistant, this module performs deterministic writes only.
+
+---
+
+## 👥 CRM Module *(Work in Progress)*
+
+A business-oriented interface designed for non-technical users.
+
+Instead of interacting with database tables, users manage business entities such as:
+
+* Clients
+* Orders *(planned)*
+* Products *(planned)*
+* Stock *(planned)*
+
+The CRM communicates with the backend using business objects while the backend handles the mapping to Sage ERP tables.
+
+---
+
+## 🔐 Authentication & Authorization
+
+The application uses JWT authentication.
+
+Current roles:
+
+* **Admin**
+
+  * AI Assistant
+  * Data Entry
+  * CRM
+  * Administration
+
+* **User**
+
+  * CRM access only
+
+---
+
+# 🏗 Architecture
 
 ```text
-User selects table
-      ↓
-GET /tables/{name}/metadata  (INFORMATION_SCHEMA + COLUMNPROPERTY)
-      ↓
-Dynamic form rendered in browser
-      ↓
-User fills form → POST /records/create  or  /records/update
-      ↓
-Server validates (table whitelist, column existence, required fields, types)
-      ↓
-Preview returned with generated SQL (parameterized)
-      ↓
-User confirms → POST /records/execute  (admin only)
-      ↓
-Parameterized INSERT / UPDATE via SQLAlchemy transaction
-      ↓
-Rows affected + duration returned
+                     React + Vite Frontend
+                              │
+          ┌───────────────────┴───────────────────┐
+          │                                       │
+          ▼                                       ▼
+   AI SQL Assistant                       CRM / Admin UI
+          │                                       │
+          └───────────────────┬───────────────────┘
+                              ▼
+                     FastAPI Backend
+                              │
+      ┌───────────────────────┼────────────────────────┐
+      │                       │                        │
+      ▼                       ▼                        ▼
+ AI Query Engine      Admin Data Entry         CRM Services
+      │                       │                        │
+      └───────────────────────┴────────────────────────┘
+                              │
+                     SQLAlchemy + PyODBC
+                              │
+                       Microsoft SQL Server
+                              │
+                         Sage 100 Database
 ```
 
 ---
 
-# API Endpoints
+# 📂 Project Structure
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/auth/register` | public | Register a new user |
-| POST | `/auth/login` | public | Login, get JWT |
-| GET | `/auth/me` | any | Current user info |
-| POST | `/ask` | any | Natural-language SQL query |
-| POST | `/intent` | any | Classify question intent |
-| GET | `/tables` | any | List all database tables |
-| GET | `/tables/{name}/metadata` | any | Column metadata for a table |
-| POST | `/records/create` | any | Validate + preview an INSERT |
-| POST | `/records/update` | any | Validate + preview an UPDATE |
-| POST | `/records/execute` | admin | Execute a confirmed write |
-| POST | `/write/preview` | any | NLP-driven write preview |
-| POST | `/write/execute` | admin | NLP-driven write execute |
-| POST | `/erp/write/preview` | any | ERP entity-aware write preview |
-| POST | `/erp/write/execute` | admin | ERP entity-aware write execute |
-| GET | `/health` | admin | Backend health check |
-| GET | `/schema-tables` | admin | FAISS-indexed table list |
-| POST | `/rebuild` | admin | Rebuild FAISS schema index |
+```text
+ERP-AI-SQL-Assistant/
 
----
-
-# Project Structure
-
-```
-erp-ai-sql-assistant/
+├── backend/
+│
 ├── api/
-│   ├── app.py                  # FastAPI app, router mounting, existing endpoints
-│   ├── metadata_router.py      # GET /tables, GET /tables/{name}/metadata
-│   └── records_router.py       # POST /records/create|update|execute
-├── core/
-│   ├── agent.py                # Read pipeline (ERPAgent)
-│   ├── write_agent.py          # NLP write pipeline (WriteAgent)
-│   ├── db.py                   # SQLAlchemy engine, run_query, run_write
-│   └── llm.py                  # Groq LLM client
-├── erp/
-│   ├── erp_write_agent.py      # Entity-aware multi-turn write agent
-│   ├── schema_inspector.py     # INFORMATION_SCHEMA column metadata
-│   └── entities.py             # ERP business entity definitions
-├── sql/
-│   ├── validator.py            # Read SQL validator
-│   ├── write_models.py         # InsertAction / UpdateAction Pydantic models
-│   ├── write_validator.py      # Write action validator + table whitelist
-│   └── write_sql_builder.py    # Parameterized SQL builder
-├── schema/
-│   └── indexer.py              # FAISS index builder
+│   ├── app.py
+│   ├── records.py
+│   └── crm/
+│
 ├── auth/
-│   ├── auth.py                 # JWT logic
-│   ├── models.py               # User model
-│   └── router.py               # /auth/* routes
-├── intent/
-│   └── classifier.py           # READ vs WRITE intent detection
+│   ├── auth.py
+│   └── jwt.py
+│
+├── core/
+│   ├── agent.py
+│   ├── db.py
+│   ├── prompts.py
+│   └── validators.py
+│
+├── erp/
+│   ├── schema_inspector.py
+│   ├── erp_write_agent.py
+│   └── metadata.py
+│
 ├── frontend/
-│   ├── vite.config.js          # Vite dev proxy (all /api paths → :8000)
-│   └── src/
-│       ├── App.jsx             # Shell, tabs, auth routing
-│       ├── pages/
-│       │   ├── Askpage.jsx     # Natural-language query UI
-│       │   ├── DataEntryPage.jsx  # Table selector, dynamic form, preview modal
-│       │   ├── TablesPage.jsx  # Schema index browser
-│       │   ├── HealthPage.jsx
-│       │   └── RebuildPage.jsx
-│       └── services/
-│           └── api.js          # Axios client + all endpoint functions
-├── test/
-│   ├── check_env.py            # .env diagnostic
-│   ├── db_test.py              # DB connectivity
-│   ├── write_pipeline_test.py  # NLP write pipeline smoke test
-│   └── data_entry_test.py      # Metadata + records pipeline smoke test
-├── .env.example
-├── requirement.txt
+│   ├── src/
+│   ├── pages/
+│   ├── components/
+│   ├── hooks/
+│   └── services/
+│
+├── requirements.txt
+├── package.json
 └── README.md
 ```
 
 ---
 
-# Setup
+# ⚙ Technology Stack
 
-### 1. Clone and configure
+## Backend
+
+* Python
+* FastAPI
+* SQLAlchemy
+* PyODBC
+* Microsoft SQL Server
+* Pydantic
+* JWT Authentication
+
+---
+
+## Frontend
+
+* React
+* Vite
+* JavaScript
+* Axios
+* React Router
+
+---
+
+## Database
+
+* Microsoft SQL Server
+* Sage 100 ERP
+
+---
+
+## AI
+
+* Large Language Models
+* Prompt Engineering
+* Retrieval-Augmented Generation (RAG)
+* Schema-aware SQL generation
+
+---
+
+# 🔄 AI Query Flow
+
+```text
+User Question
+
+↓
+
+Retrieve Database Schema
+
+↓
+
+Generate SQL
+
+↓
+
+Validate SQL
+
+↓
+
+Execute Query
+
+↓
+
+Return Results
+```
+
+---
+
+# 🔄 Data Entry Flow
+
+```text
+User Form
+
+↓
+
+Validate Table
+
+↓
+
+Validate Columns
+
+↓
+
+Validate Required Fields
+
+↓
+
+Generate Parameterized SQL
+
+↓
+
+Preview
+
+↓
+
+Confirm
+
+↓
+
+Execute Transaction
+
+↓
+
+SQL Server
+```
+
+---
+
+# 🔒 Security
+
+Security is a core design principle of the project.
+
+Implemented protections include:
+
+* JWT Authentication
+* Role-Based Authorization
+* Read-only AI SQL execution
+* Table whitelist
+* Column whitelist
+* Schema validation
+* Required field validation
+* Parameterized SQL
+* SQL Injection prevention
+* Transaction management
+* Server-side validation before execution
+
+---
+
+# 📡 REST API
+
+## Authentication
+
+```
+POST /login
+POST /register
+```
+
+---
+
+## AI
+
+```
+POST /ask
+```
+
+---
+
+## Metadata
+
+```
+GET /health
+GET /tables
+GET /tables/{table}/metadata
+GET /rebuild
+```
+
+---
+
+## Admin Data Entry
+
+```
+POST /records/create
+POST /records/update
+POST /records/execute
+```
+
+---
+
+## CRM *(In Progress)*
+
+```
+GET /crm/clients
+POST /crm/clients
+PUT /crm/clients/{id}
+DELETE /crm/clients/{id}
+```
+
+---
+
+# 💻 Installation
+
+## Clone the repository
 
 ```bash
-cp .env.example .env
+git clone https://github.com/yourusername/erp-ai-sql-assistant.git
+
+cd erp-ai-sql-assistant
 ```
 
-Edit `.env`:
+---
 
-```env
-DB_SERVER=YOUR_SERVER
-DB_NAME=YOUR_DATABASE
-DB_USER=YOUR_USER
-DB_PASSWORD=YOUR_PASSWORD
-GROQ_API_KEY=YOUR_GROQ_API_KEY
-```
+## Backend
 
-### 2. Install Python dependencies
+Create a virtual environment
 
 ```bash
-pip install -r requirement.txt
+python -m venv venv
 ```
 
-### 3. Build the FAISS schema index
+Activate it
+
+### Windows
 
 ```bash
-python build_index.py
+venv\Scripts\activate
 ```
 
-### 4. Seed an admin user
+### Linux/macOS
 
 ```bash
-python seedadmin.py
+source venv/bin/activate
 ```
 
-### 5. Start the backend
+Install dependencies
 
 ```bash
-uvicorn api.app:app --reload --port 8000
+pip install -r requirements.txt
 ```
 
-### 6. Start the frontend
+Run FastAPI
+
+```bash
+uvicorn api.app:app --reload
+```
+
+---
+
+## Frontend
 
 ```bash
 cd frontend
+
 npm install
+
 npm run dev
 ```
 
-Open `http://localhost:5173` and log in.
-
 ---
 
-# Testing
+# ⚙ Environment Variables
 
-```bash
-# Check .env is loaded correctly
-python test/check_env.py
+Example `.env`
 
-# Test DB connectivity
-python test/db_test.py
+```env
+DB_SERVER=localhost
+DB_NAME=BIJOU
+DB_USER=sa
+DB_PASSWORD=your_password
 
-# Test NLP write pipeline (no DB writes)
-python test/write_pipeline_test.py
+JWT_SECRET=your_secret
 
-# Test metadata + data entry pipeline (no DB writes)
-python test/data_entry_test.py
+OPENAI_API_KEY=your_api_key
 ```
 
 ---
 
-# Security Notes
+# 📸 Screenshots
 
-- Write execution (`/records/execute`) requires admin JWT — regular users can only preview.
-- All writes use SQLAlchemy parameterized queries — no string concatenation of user values.
-- System tables (`sys*`, `INFORMATION_SCHEMA`, etc.) are blocked from metadata and write endpoints.
-- Identity and computed columns are locked read-only in the form and rejected server-side if submitted.
-- The read pipeline blocks all DDL and DML keywords to prevent SQL injection through natural language.
+Future screenshots can include:
+
+* Login Page
+* Dashboard
+* AI Assistant
+* SQL Results
+* Admin Data Entry
+* CRM Clients
+* CRM Orders
+* Stock Management
+
+---
+
+# 🛣 Roadmap
+
+## ✅ Completed
+
+* AI SQL Assistant
+* SQL Validation
+* Schema Retrieval
+* JWT Authentication
+* Dynamic Data Entry
+* SQL Preview
+* SQL Server Integration
+* Sage Integration
+
+---
+
+## 🚧 In Progress
+
+* CRM Clients
+
+---
+
+## 🔜 Planned
+
+* Orders Management
+* Products Management
+* Stock Management
+* Dashboard
+* Reports
+* Analytics
+* AI Write Assistant
+* Business Workflow Automation
+
+---
+
+# 🎯 Project Goals
+
+The objective of this project is to modernize ERP systems by combining deterministic backend logic with Artificial Intelligence.
+
+The platform aims to:
+
+* Simplify ERP interactions
+* Reduce SQL knowledge requirements
+* Improve productivity
+* Secure database operations
+* Provide a modern user experience
+* Enable future AI-powered business workflows
+
+---
+
+# 🤝 Contributing
+
+Contributions are welcome.
+
+To contribute:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Commit your changes.
+4. Push the branch.
+5. Open a Pull Request.
+
+---
+
+# 📄 License
+
+This project is intended for educational and professional purposes.
+
+Ensure compliance with your organization's Sage ERP licensing, security policies, and database access rules before deploying in production.
+
+---
+
+# 👨‍💻 Author
+
+**EL-MOUTOUK MOHAMED YASSIR**
+
+AI/Data Engineer passionate about Artificial Intelligence, Data Engineering, Machine Learning, and Backend Development.
+
+This project demonstrates the integration of AI technologies with enterprise ERP systems to build intelligent, secure, and user-friendly business applications.
