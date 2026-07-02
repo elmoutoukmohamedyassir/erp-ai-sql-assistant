@@ -1,10 +1,10 @@
-# 🚀 ERP AI SQL Assistant
+#  ERP AI SQL Assistant
 
 > **An AI-powered ERP platform built on top of Sage 100 SQL Server, combining natural language querying, secure data management, and a modern business interface.**
 
 ---
 
-## 📖 Overview
+##  Overview
 
 ERP AI SQL Assistant is a full-stack web application that modernizes the interaction with a Sage 100 ERP database.
 
@@ -17,9 +17,9 @@ The project combines deterministic backend logic with AI capabilities while keep
 
 ---
 
-# ✨ Features
+#  Features
 
-## 🤖 AI SQL Assistant
+##  AI SQL Assistant
 
 Ask questions in natural language instead of writing SQL.
 
@@ -59,7 +59,7 @@ Results
 
 ---
 
-## 📝 Admin Data Entry
+##  Admin Data Entry
 
 A secure administration module allowing administrators to insert or update Sage ERP records without manually writing SQL.
 
@@ -78,7 +78,7 @@ Unlike the AI assistant, this module performs deterministic writes only.
 
 ---
 
-## 👥 CRM Module *(Work in Progress)*
+##  CRM Module *(Work in Progress)*
 
 A business-oriented interface designed for non-technical users.
 
@@ -93,7 +93,7 @@ The CRM communicates with the backend using business objects while the backend h
 
 ---
 
-## 🔐 Authentication & Authorization
+##  Authentication & Authorization
 
 The application uses JWT authentication.
 
@@ -112,7 +112,7 @@ Current roles:
 
 ---
 
-# 🏗 Architecture
+#  Architecture
 
 ```text
                      React + Vite Frontend
@@ -142,7 +142,7 @@ Current roles:
 
 ---
 
-# 📂 Project Structure
+#  Project Structure
 
 ```text
 ERP-AI-SQL-Assistant/
@@ -183,7 +183,7 @@ ERP-AI-SQL-Assistant/
 
 ---
 
-# ⚙ Technology Stack
+#  Technology Stack
 
 ## Backend
 
@@ -223,7 +223,7 @@ ERP-AI-SQL-Assistant/
 
 ---
 
-# 🔄 AI Query Flow
+#  AI Query Flow
 
 ```text
 User Question
@@ -251,7 +251,7 @@ Return Results
 
 ---
 
-# 🔄 Data Entry Flow
+#  Data Entry Flow
 
 ```text
 User Form
@@ -291,7 +291,7 @@ SQL Server
 
 ---
 
-# 🔒 Security
+#  Security
 
 Security is a core design principle of the project.
 
@@ -311,7 +311,7 @@ Implemented protections include:
 
 ---
 
-# 📡 REST API
+#  REST API
 
 ## Authentication
 
@@ -362,7 +362,7 @@ DELETE /crm/clients/{id}
 
 ---
 
-# 💻 Installation
+#  Installation
 
 ## Clone the repository
 
@@ -422,7 +422,7 @@ npm run dev
 
 ---
 
-# ⚙ Environment Variables
+#  Environment Variables
 
 Example `.env`
 
@@ -439,7 +439,7 @@ OPENAI_API_KEY=your_api_key
 
 ---
 
-# 📸 Screenshots
+#  Screenshots
 
 Future screenshots can include:
 
@@ -454,9 +454,9 @@ Future screenshots can include:
 
 ---
 
-# 🛣 Roadmap
+#  Roadmap
 
-## ✅ Completed
+##  Completed
 
 * AI SQL Assistant
 * SQL Validation
@@ -469,13 +469,13 @@ Future screenshots can include:
 
 ---
 
-## 🚧 In Progress
+##  In Progress
 
 * CRM Clients
 
 ---
 
-## 🔜 Planned
+##  Planned
 
 * Orders Management
 * Products Management
@@ -488,7 +488,7 @@ Future screenshots can include:
 
 ---
 
-# 🎯 Project Goals
+#  Project Goals
 
 The objective of this project is to modernize ERP systems by combining deterministic backend logic with Artificial Intelligence.
 
@@ -503,7 +503,7 @@ The platform aims to:
 
 ---
 
-# 🤝 Contributing
+#  Contributing
 
 Contributions are welcome.
 
@@ -517,7 +517,7 @@ To contribute:
 
 ---
 
-# 📄 License
+#  License
 
 This project is intended for educational and professional purposes.
 
@@ -525,7 +525,7 @@ Ensure compliance with your organization's Sage ERP licensing, security policies
 
 ---
 
-# 👨‍💻 Author
+#  Author
 
 **EL-MOUTOUK MOHAMED YASSIR**
 
