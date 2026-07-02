@@ -367,7 +367,7 @@ DELETE /crm/clients/{id}
 ## Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/erp-ai-sql-assistant.git
+git clone https://github.com/elmoutoukmohamedyassir/erp-ai-sql-assistant.git
 
 cd erp-ai-sql-assistant
 ```
