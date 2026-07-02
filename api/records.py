@@ -1,24 +1,3 @@
-"""
-api/records.py — generic table/column CRUD write endpoints for the
-Data-Entry "Create Record" / "Update Record" panel.
-
-Deliberately separate from the entity-aware NL write pipeline in
-erp/erp_write_agent.py — this is the raw table+column path that
-DataEntryPage.jsx drives directly (no LLM in the loop).
-
-Safety model
-------------
-* Table name whitelist: must be a real table via core.db.get_all_table_names().
-* Column whitelist + real casing: core.db.get_table_columns_real_case().
-* SQL is always parameterized (SQLAlchemy bind params for VALUES). Table
-  and column identifiers are never taken from user input directly — they
-  are only used after being matched against the whitelists above, so an
-  attacker-controlled string can never reach the SQL as an identifier
-  unless it's already a real table/column name.
-* preview() never executes. execute() re-validates from scratch before
-  running anything — a client can't skip preview's checks by calling
-  execute directly.
-"""
 from __future__ import annotations
 
 from typing import Any

@@ -1,28 +1,4 @@
-"""
-erp/conversation_store.py — short-lived, in-process memory for multi-turn
-ERP write conversations (slot-filling across messages).
 
-Design decisions
------------------
-* In-memory + thread-safe (a single Lock — fine at this volume; ERP write
-  conversations are low-frequency compared to read queries). NOT persisted
-  to disk/DB: a slot-filling exchange ("create customer Ahmed" -> "code
-  AHMED001 type customer") is expected to complete within minutes, so
-  losing state on a server restart is an acceptable trade-off for not
-  adding a new persistence layer to a feature that's already touching a
-  lot of new surface. If this needs to survive restarts later, swap this
-  class's internals for a SQLite table (same pattern as auth/models.py)
-  without changing its public functions below.
-* Keyed by a `conversation_id` the FRONTEND generates and keeps (e.g. one
-  per chat thread) — this module doesn't try to infer which messages
-  belong together, it just stores whatever the caller hands it under
-  that id.
-* merge() overwrites a field if the same column is given again — this is
-  what lets a user correct a previously given value mid-conversation
-  ("actually make the type 'supplier' not 'customer'").
-* Idle conversations are evicted after _TTL_SECONDS so this dict can't
-  grow unbounded if conversations are abandoned mid-flow.
-"""
 from __future__ import annotations
 
 import threading

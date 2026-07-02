@@ -48,7 +48,7 @@ export const getMe = () => http.get('/auth/me')
 
 // ── app ───────────────────────────────────────────────────────────────────
 export const getHealth   = ()            => http.get('/health')
-export const getTables   = ()            => http.get('/schema-tables')
+export const getTables   = ()            => http.get('/tables')
 export const postRebuild = ()            => http.post('/rebuild')
 export const postAsk     = (q, top_k=8) => http.post('/ask', { question: q, top_k })
 

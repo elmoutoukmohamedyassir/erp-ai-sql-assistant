@@ -19,6 +19,7 @@ except ImportError:
 from auth.auth import TokenData, require_admin, require_any
 from auth.models import create_tables
 from auth.router import router as auth_router
+from api.records import router as records_router
 from core.agent import ERPAgent
 from erp.schema_inspector import get_table_metadata
 from utils.logger import get_logger
@@ -44,6 +45,10 @@ app.add_middleware(
 
 # mount auth routes (/auth/register, /auth/login, /auth/me)
 app.include_router(auth_router)
+
+# mount records routes (/records/create, /records/update, /records/execute)
+# used by the Data-Entry "Preview & Validate" / "Create Record" panel
+app.include_router(records_router)
 
 
 # ── agent singleton ───────────────────────────────────────────────────────────

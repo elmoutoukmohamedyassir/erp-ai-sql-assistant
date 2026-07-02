@@ -1,29 +1,3 @@
-"""
-erp/erp_write_agent.py — orchestrates the ENTITY-AWARE write pipeline.
-
-question (+ conversation_id) → LLM (entity JSON) → merge into conversation
-state → required-field check → EITHER ask for more info OR delegate to the
-EXISTING, already-tested table/column write pipeline for validation, SQL
-building, and execution.
-
-Design decisions
------------------
-* This is a layer ON TOP of core/write_agent.py, sql/write_validator.py
-  and sql/write_sql_builder.py — none of those are modified. Once an
-  entity action has all its required fields, it's translated into the
-  exact same InsertAction/UpdateAction shape the existing pipeline already
-  validates and executes. The real SQL-safety guarantees (table whitelist,
-  column whitelist, parameterized SQL, defense-in-depth re-validation on
-  execute) are inherited for free instead of being re-implemented here.
-* preview() never executes anything. execute() simply delegates to
-  core.write_agent.WriteAgent.execute(), which re-validates from scratch
-  anyway — so this module adds ZERO new execution code paths. The only
-  new thing execute() does is clear the conversation on success.
-* Conversation state (erp/conversation_store.py) is what makes multi-turn
-  slot-filling possible: each preview() call merges newly-extracted
-  fields into whatever was already collected for that conversation_id,
-  and only proceeds to validation once nothing required is missing.
-"""
 from __future__ import annotations
 
 import json

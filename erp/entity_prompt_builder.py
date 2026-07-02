@@ -1,21 +1,3 @@
-"""
-erp/entity_prompt_builder.py — prompts that make the LLM emit
-{"entity", "operation", "fields"} instead of raw table/column writes.
-
-Design decisions
------------------
-* Mirrors sql/write_prompt_builder.py's shape — same self-correction
-  contract (previous_json / error_message), same "never output SQL" rule.
-* The LLM works at the ENTITY level (Customer, Article, ...), never at the
-  table/column level directly. erp/erp_write_agent.py is what maps entity
-  fields -> real table/columns afterwards, via erp/entities.py. This keeps
-  the LLM's job (and its failure surface) limited to "what business thing
-  is this and what values did the user give", not "which physical table".
-* Already-collected fields from a prior turn are injected into the prompt
-  (<already_collected>) so the LLM only needs to extract NEW information
-  from the latest message rather than re-deriving everything from scratch
-  every turn — this is what makes multi-turn slot-filling work.
-"""
 from __future__ import annotations
 
 from typing import Any

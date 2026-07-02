@@ -1,25 +1,3 @@
-"""
-erp/schema_inspector.py — required-field / metadata inspection for ERP tables.
-
-Design decisions
------------------
-* Uses INFORMATION_SCHEMA.COLUMNS (portable, matches the spec) for
-  type/nullable/default, plus COLUMNPROPERTY(...) for identity/computed
-  flags — INFORMATION_SCHEMA doesn't expose those two.
-* Primary key membership is read separately via SQLAlchemy's inspector
-  (get_pk_constraint), the same mechanism core/db.py already uses in
-  load_full_schema() — kept consistent rather than hand-rolling another
-  KEY_COLUMN_USAGE query.
-* A column is "required for INSERT" only if it disallows NULL, has no
-  default value, and is not identity/computed — i.e. SQL Server will not
-  fill it in for you, so the caller MUST supply it.
-* This module never validates write-safety (whitelisting, etc.) — that
-  remains entirely sql/write_validator.py's job. This module only answers
-  "what does this table need", which sql/write_validator.py doesn't try
-  to answer today.
-* Cached per table name (process lifetime), mirroring core/db.py's
-  lru_cache pattern. Call clear_metadata_cache() after a schema change.
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass

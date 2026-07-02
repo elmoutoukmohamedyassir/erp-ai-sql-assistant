@@ -1,27 +1,3 @@
-"""
-erp/entities.py — ERP business-entity definitions.
-
-Design decisions
------------------
-* An ERPEntity is a thin, declarative description of a business concept
-  ("Customer") mapped onto a physical table ("F_COMPTET") that is ALREADY
-  in sql/write_validator.WRITABLE_TABLES. This module never bypasses that
-  whitelist — it's a friendlier layer ON TOP of it, not a replacement.
-  Adding a new entity here does nothing unless its table is also
-  deliberately whitelisted in sql/write_validator.py (see is_entity_writable).
-* `field_aliases` maps friendly/LLM-facing field names -> real DB column
-  names (uppercase), so prompts and API responses can use names a
-  non-technical user (or an LLM) would naturally produce ("name" ->
-  "CT_INTITULE") without hardcoding column casing everywhere.
-* `additional_required_fields` covers BUSINESS rules the DB schema itself
-  doesn't enforce (e.g. CT_Type may be nullable in SQL Server, but a
-  customer record without a type is meaningless). These are merged with
-  the DB-derived required columns from erp/schema_inspector.py.
-* Entities for tables NOT YET in WRITABLE_TABLES (Invoice, Payment) are
-  defined with enabled=False, so the system gives a clear "not enabled
-  yet" message instead of silently failing — or worse, an LLM inventing a
-  write path that routes around the whitelist.
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
