@@ -1,3 +1,10 @@
+"""
+api/app.py — ERP AI SQL Assistant API with JWT role-based authorization.
+
+Roles:
+  admin → /health, /tables, /tables/{table}/metadata, /rebuild, /ask  (full access)
+  user  → /ask only
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -13,6 +20,7 @@ from auth.auth import TokenData, require_admin, require_any
 from auth.models import create_tables
 from auth.router import router as auth_router
 from api.records import router as records_router
+from api.crm.router import router as crm_router
 from core.agent import ERPAgent
 from erp.schema_inspector import get_table_metadata
 from utils.logger import get_logger
@@ -42,6 +50,12 @@ app.include_router(auth_router)
 # mount records routes (/records/create, /records/update, /records/execute)
 # used by the Data-Entry "Preview & Validate" / "Create Record" panel
 app.include_router(records_router)
+
+# mount CRM routes (/crm/clients, /crm/orders, /crm/products, /crm/stock)
+# — a completely separate, business-object-only API for non-technical
+# CRM users. Independent from records_router above; does not touch or
+# replace it. Available to both "user" and "admin" roles.
+app.include_router(crm_router)
 
 
 # ── agent singleton ───────────────────────────────────────────────────────────
@@ -134,8 +148,10 @@ def rebuild(_: TokenData = Depends(require_admin)):
 
 
 @app.post("/ask", response_model=AskResponse)
-def ask(req: AskRequest, _: TokenData = Depends(require_any)):
-    """Admin + user — natural language query."""
+def ask(req: AskRequest, _: TokenData = Depends(require_admin)):
+    """Admin only — natural language query (returns raw SQL, so it's kept
+    out of reach of the "user" role now that CRM gives non-technical users
+    a SQL-free way to work. Was require_any before the CRM module existed."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="question cannot be empty")
 

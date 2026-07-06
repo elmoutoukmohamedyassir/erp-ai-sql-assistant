@@ -46,3 +46,9 @@ html, body, #root {
 .fadein { animation: fadein 0.22s ease; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; display: inline-flex; }
+
+/* ── CRM module (additive; does not alter any rule above) ───────────────── */
+.crm-nav-group-enter {
+  animation: fadein 0.15s ease;
+}

@@ -1,3 +1,18 @@
+"""
+core/db.py — database layer.
+
+Key design decisions
+--------------------
+* Singleton engine — created once, reused across the process lifetime.
+* Two schema helpers exposed to other modules:
+    - get_all_table_names()  → set[str]   used by the VALIDATOR
+    - get_table_columns()    → dict       used by the VALIDATOR
+  These are the ground-truth references. The FAISS index is only used
+  to pick which tables go into the LLM prompt — it is NEVER used for
+  validation.
+* load_full_schema() is used by the schema indexer at build time.
+* run_query() executes only pre-validated SELECT statements.
+"""
 from __future__ import annotations
 
 import os
@@ -192,6 +207,40 @@ def run_write(sql: str, params: dict[str, Any], timeout_seconds: int = 30) -> di
     except SQLAlchemyError as exc:
         ms = int((time.perf_counter() - t0) * 1000)
         logger.error("Write failed (%dms): %s", ms, exc)
+        raise RuntimeError(str(exc)) from exc
+
+
+def run_query_params(sql: str, params: dict[str, Any] | None = None, timeout_seconds: int = 30) -> dict[str, Any]:
+    """
+    Execute a parameterized, read-only SELECT statement with bound params.
+
+    Added for the CRM module (api/crm/) so user-supplied search/filter
+    values are always bound as parameters and never string-concatenated
+    into SQL. This is purely additive:
+    * run_query()  (below) is untouched and still used exactly as before
+      by the AI SQL Assistant's already-validated, parameter-free SELECTs.
+    * run_write()  (above) is untouched and still used exactly as before
+      by the Admin Data-Entry INSERT/UPDATE pipeline.
+    """
+    engine = get_engine()
+    t0 = time.perf_counter()
+
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text(sql).execution_options(timeout=timeout_seconds),
+                params or {},
+            )
+            columns = list(result.keys())
+            rows = [list(row) for row in result.fetchall()]
+
+        ms = int((time.perf_counter() - t0) * 1000)
+        logger.info("Param query OK — %d rows in %dms", len(rows), ms)
+        return {"columns": columns, "rows": rows, "duration_ms": ms}
+
+    except SQLAlchemyError as exc:
+        ms = int((time.perf_counter() - t0) * 1000)
+        logger.error("Param query failed (%dms): %s", ms, exc)
         raise RuntimeError(str(exc)) from exc
 
 
