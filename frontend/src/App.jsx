@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
-import { MessageSquare, Table2, Activity, RefreshCw, LogOut, ShieldCheck, User, Edit3 } from 'lucide-react'
+import { MessageSquare, Table2, Activity, RefreshCw, LogOut, ShieldCheck, User, Edit3, Users, Package, Boxes, ClipboardList } from 'lucide-react'
 import { useHealth } from './hooks/useHealth'
 import { useAuth }   from './context/AuthContext'
 import { AskPage }       from './pages/Askpage'
@@ -11,10 +11,21 @@ import { RebuildPage }   from './pages/RebuildPage'
 import { LoginPage }     from './pages/LoginPage'
 import { RegisterPage }  from './pages/RegisterPage'
 import { DataEntryPage } from './pages/DataEntryPage'
+import ClientsPage       from './pages/crm/ClientsPage'
+import ProductsPage      from './pages/crm/ProductsPage'
+import StockPage         from './pages/crm/StockPage'
+import OrdersPage        from './pages/crm/OrdersPage'
 
 // All tabs — visibility controlled by role
+// CRM tabs (clients/products/stock/orders) are adminOnly: false because the
+// backend CRM routes (api/crm/router.py) are protected with require_any,
+// i.e. open to both "user" and "admin" roles.
 const ALL_TABS = [
   { id: 'ask',       label: 'Ask',        icon: MessageSquare, adminOnly: false },
+  { id: 'clients',   label: 'Clients',    icon: Users,         adminOnly: false },
+  { id: 'products',  label: 'Products',   icon: Package,       adminOnly: false },
+  { id: 'stock',     label: 'Stock',      icon: Boxes,         adminOnly: false },
+  { id: 'orders',    label: 'Orders',     icon: ClipboardList, adminOnly: false },
   { id: 'dataentry', label: 'Data Entry', icon: Edit3,         adminOnly: true  },
   { id: 'tables',    label: 'Tables',     icon: Table2,        adminOnly: true  },
   { id: 'health',    label: 'Health',     icon: Activity,      adminOnly: true  },
@@ -23,6 +34,10 @@ const ALL_TABS = [
 
 const PAGES = {
   ask:       AskPage,
+  clients:   ClientsPage,
+  products:  ProductsPage,
+  stock:     StockPage,
+  orders:    OrdersPage,
   dataentry: DataEntryPage,
   tables:    TablesPage,
   health:    HealthPage,
