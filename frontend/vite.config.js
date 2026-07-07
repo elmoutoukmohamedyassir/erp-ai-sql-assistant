@@ -15,6 +15,7 @@ export default defineConfig({
       '/write':         { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/erp':           { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/intent':        { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/crm':           { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },
   },
 })
