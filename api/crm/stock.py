@@ -71,6 +71,16 @@ def _product_name_column() -> str | None:
     return resolve_column(mapping.PRODUCT_TABLE, mapping.PRODUCT_FIELDS["name"])
 
 
+def _product_exists(product_id: str) -> bool:
+    ensure_table_exists(mapping.PRODUCT_TABLE)
+    code_col = resolve_column(mapping.PRODUCT_TABLE, mapping.PRODUCT_CODE_COLUMN)
+    if not code_col:
+        return False
+    sql = f"SELECT 1 FROM [{mapping.PRODUCT_TABLE}] WHERE [{code_col}] = :id"
+    result = run_query_params_safe(sql, {"id": product_id})
+    return bool(result["rows"])
+
+
 def _get_stock_row(ref_col: str, qty_col: str, depot_col: str | None, product_id: str) -> dict[str, Any] | None:
     where = f"[{ref_col}] = :ref"
     params: dict[str, Any] = {"ref": product_id}
@@ -139,6 +149,12 @@ def list_stock(
 
 @router.post("/receive", response_model=StockItemOut)
 def receive_stock(payload: ReceiveStockIn, _: TokenData = Depends(require_any)):
+    if not _product_exists(payload.product_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Product '{payload.product_id}' doesn't exist. Please check the reference and try again.",
+        )
+
     ref_col, qty_col, depot_col = _stock_columns()
     existing = _get_stock_row(ref_col, qty_col, depot_col, payload.product_id)
 
@@ -165,6 +181,12 @@ def receive_stock(payload: ReceiveStockIn, _: TokenData = Depends(require_any)):
 
 @router.post("/adjust", response_model=StockItemOut)
 def adjust_stock(payload: AdjustStockIn, _: TokenData = Depends(require_any)):
+    if not _product_exists(payload.product_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Product '{payload.product_id}' doesn't exist. Please check the reference and try again.",
+        )
+
     ref_col, qty_col, depot_col = _stock_columns()
     existing = _get_stock_row(ref_col, qty_col, depot_col, payload.product_id)
 

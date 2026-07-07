@@ -63,7 +63,7 @@ PRODUCT_CODE_PREFIX = "ART"
 PRODUCT_FIELDS: dict[str, list[str]] = {
     "name":            ["AR_DESIGN"],
     "description":     ["AR_DESIGNSUPP", "AR_COMMENTAIRE"],
-    "category":        ["AR_FAMILLE"],
+    "category":        ["AR_FAMILLE", "FA_CODEFAMILLE"],
     "unit":            ["AR_UNITEVEN", "AR_UNITE"],
     "sale_price":      ["AR_PRIXVEN"],
     "purchase_price":  ["AR_PRIXACH"],

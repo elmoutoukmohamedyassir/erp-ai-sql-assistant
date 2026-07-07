@@ -109,8 +109,18 @@ def _header_setup():
     line_doc_type_col = resolve_column(mapping.ORDER_LINE_TABLE, mapping.ORDER_DOC_TYPE_COLUMN)
 
     if not order_code_col or "customer_code" not in header_map:
+        logger.error(
+            "Orders misconfigured — header_table=%s order_code_col=%s "
+            "resolved_header_fields=%s (need 'customer_code')",
+            mapping.ORDER_HEADER_TABLE, order_code_col, sorted(header_map.keys()),
+        )
         raise HTTPException(status_code=500, detail="This feature isn't configured correctly yet.")
     if "product_ref" not in line_map or "quantity" not in line_map:
+        logger.error(
+            "Orders misconfigured — line_table=%s resolved_line_fields=%s "
+            "(need 'product_ref' and 'quantity')",
+            mapping.ORDER_LINE_TABLE, sorted(line_map.keys()),
+        )
         raise HTTPException(status_code=500, detail="This feature isn't configured correctly yet.")
 
     return {

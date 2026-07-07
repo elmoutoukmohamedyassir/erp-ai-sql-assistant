@@ -94,22 +94,32 @@ def generate_code(table: str, code_column: str, prefix: str, width: int = 6) -> 
     """
     Generate the next business code like 'CL000123'.
 
-    Simple count-based sequence — good enough for a low-concurrency CRM
-    front end. For a live multi-user, high-volume deployment, wire this
-    up to Sage's own counter mechanism instead.
+    Pulls back every existing code starting with `prefix` and computes the
+    highest numeric suffix in Python (rather than SQL MAX()), because some
+    Sage installations store these columns as fixed-width/padded CHAR with
+    collations that make MAX()/ORDER BY behave unreliably on string data.
+    Doing the comparison in Python sidesteps that entirely.
+
+    Simple approach — good enough for a low-concurrency CRM front end. For
+    a live multi-user, high-volume deployment, wire this up to Sage's own
+    counter mechanism instead.
     """
-    sql = f"SELECT MAX([{code_column}]) AS max_code FROM [{table}] WHERE [{code_column}] LIKE :prefix"
+    sql = f"SELECT [{code_column}] FROM [{table}] WHERE [{code_column}] LIKE :prefix"
     result = run_query_params(sql, {"prefix": f"{prefix}%"})
-    rows = result["rows"]
-    max_code = rows[0][0] if rows and rows[0] else None
 
-    next_n = 1
-    if max_code:
-        digits = "".join(ch for ch in str(max_code)[len(prefix):] if ch.isdigit())
+    max_n = 0
+    for row in result["rows"]:
+        raw = row[0]
+        if not raw:
+            continue
+        code = str(raw).strip()
+        if not code.upper().startswith(prefix.upper()):
+            continue
+        digits = "".join(ch for ch in code[len(prefix):] if ch.isdigit())
         if digits:
-            next_n = int(digits) + 1
+            max_n = max(max_n, int(digits))
 
-    return f"{prefix}{next_n:0{width}d}"
+    return f"{prefix}{max_n + 1:0{width}d}"
 
 
 # ── search + pagination ──────────────────────────────────────────────────────

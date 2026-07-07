@@ -77,8 +77,19 @@ def _code_column() -> str:
     return real
 
 
+_STRING_FIELDS = {"name", "description", "category", "unit", "barcode"}
+
+
 def _row_to_out(field_map: dict[str, str], code_value: str, row: dict[str, Any]) -> ProductOut:
-    data = {biz: row.get(biz) for biz in field_map}
+    data: dict[str, Any] = {}
+    for biz in field_map:
+        value = row.get(biz)
+        if value is not None and biz in _STRING_FIELDS:
+            # Some Sage installs store these as numeric codes (e.g. AR_UNITEVEN
+            # as an integer unit-of-measure ID) rather than free text — coerce
+            # so it doesn't fail ProductOut's `str | None` validation.
+            value = str(value)
+        data[biz] = value
     data["id"] = code_value
     data["sku"] = code_value
     return ProductOut(**data)
