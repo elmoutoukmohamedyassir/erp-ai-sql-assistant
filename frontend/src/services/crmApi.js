@@ -1,9 +1,5 @@
 import axios from 'axios'
 
-// Deliberately a SEPARATE axios instance from services/api.js so the CRM
-// module has zero risk of altering Admin Data-Entry's request/response
-// behavior. Same conventions (JWT header, unwrapped responses, friendly
-// error messages) so it feels consistent to the rest of the app.
 const http = axios.create({
   baseURL: '',
   timeout: 60_000,
